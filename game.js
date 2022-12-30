@@ -1,45 +1,122 @@
-initGame();
+
+const canvas = document.querySelector('canvas')
+const context = canvas.getContext('2d')
 
 function initGame() {
-
+canvas.width = 1024
+canvas.height = 576
+}
+initGame();
     // Your game can start here, but define separate functions, don't write everything in here :)
-
-}
-<<<<<<< Updated upstream
-=======
-
-class EnemyMedusa {
+const gravity = 1.5
+const winReq = 2000
+class Player {
 	constructor() {
-		this.speed = 10
-		this.position = {
-			x:300,
-			y:360	
+			this.speed = 10
+			this.position = {
+				x: 100,
+				y: 100			
+			}
+		this.velocity = {
+			x: 0,
+			y: 1
 		}
-	this.velocity = {
-		x: 0,
-		y: 1
-	}
-	this.width = 66
-	this.height = 150
+		this.width = 66
+		this.height = 150
 
-	this.image = createImage(medusaRight)
-	this.frames = 0
-	this.sprites = {
-		stand: {
-			right: createImage(medusaRight),
-			left: createImage(medusaRight),
-			cropWidth: 177
-		},
-		run: {
-			right: createImage(medusaRight),
-			cropWidth: 340
-			//width: 127.875
+		this.image = createImage(spriteStandRight)
+		this.frames = 0
+		this.sprites = {
+			stand: {
+				right: createImage(spriteStandRight),
+				left: createImage(spriteStandLeft),
+				cropWidth: 177
+			},
+			run: {
+				right: createImage(spriteRunRight),
+				left: createImage(spriteRunLeft),
+				cropWidth: 340
+				//width: 127.875
+			}
 		}
+
+		this.currentSprite = this.sprites.stand.right
+		this.currentCropWidth = 177
 	}
 
-	this.currentSprite = this.sprites.stand.right
-	this.currentCropWidth = 177
+	draw() {
+		context.drawImage(this.currentSprite,
+			this.currentCropWidth*this.frames,
+			0,
+			this.currentCropWidth,
+			400,
+			this.position.x,
+			this.position.y,
+			this.width,
+			this.height
+		)
+	}
+
+	update() {
+		this.frames++
+		if(this.frames > 28) this.frames = 0
+		this.draw()
+		this.position.x += this.velocity.x
+		this.position.y += this.velocity.y
+
+		if (this.position.y + this.height + 
+			this.velocity.y <= canvas.height)
+			this.velocity.y += gravity
+		//else this.velocity.y = 0
+	}
 }
+
+class Platform {
+	constructor({x, y, image}){
+		this.position = {
+			x,
+			y
+		}
+		this.image = image
+		this.width = image.width
+		this.height = image.height
+	}
+
+	draw() {
+		context.drawImage(this.image, this.position.x, this.position.y)
+	}
+
+}
+
+class GenericObject {
+	constructor({x, y, image}){
+		this.position = {
+			x,
+			y
+		}
+		this.image = image
+		this.width = image.width
+		this.height = image.height
+	}
+
+	draw() {
+		context.drawImage(this.image, this.position.x, this.position.y)
+	}
+}
+class EnemyMedusa {
+	constructor({x, y, image}){
+		this.position = {
+			x,
+			y
+		}
+		this.image = image
+		this.width = image.width
+		this.height = image.height
+	}
+
+	draw() {
+		context.drawImage(this.image, this.position.x, this.position.y)
+	}
 }
 
 let platform = '/img/platform.png'
@@ -47,7 +124,7 @@ let background = '/img/background.png'
 let hills = '/img/hills.png'
 let platformSmallTall = '/img/platformSmallTall.png'
 
-let medusaRight = '/img/medusa/medusaIdleRight.png'
+let medusaRight = '/img/medusa/Idle1.png'
 
 let spriteRunLeft = '/img/spriteRunLeft.png'
 let spriteRunRight = '/img/spriteRunRight.png'
@@ -63,12 +140,14 @@ function createImage(imageSrc){
 }
 
 let player = new Player()
-let enemy= new EnemyMedusa()
+
 
 let platformImage = createImage(platform)
 let platformSmallTallImage = createImage(platformSmallTall)
+let medusaImage = createImage(medusaRight)
 let platforms = []
 let genericObjects = []
+let enemies=[]
 
 let keys = {
 	left: {
@@ -85,7 +164,11 @@ let shownWinAlert = false
 
 function init(){
 player = new Player()
-enemy = new EnemyMedusa()
+
+
+enemies = [
+	new EnemyMedusa({x:300,y:360, image:medusaImage})
+]
 
 platforms = [
 	new Platform({x: platformSmallTallImage.width * 5 + 180, y: 320, image: platformSmallTallImage}),
@@ -126,6 +209,10 @@ function animate(){
 
 	platforms.forEach(platform => {
 		platform.draw()
+	})
+	
+	enemies.forEach(enemy =>{
+		enemy.draw()
 	})
 
 	player.update()
@@ -175,14 +262,14 @@ function animate(){
 			player.velocity.y = 0
 		}
 	})
-
-	// enemy detection
+	// // enemy detection
+	enemies.forEach(enemy =>{
 	if (player.position.y + player.height <= enemy.position.y &&
 		player.position.y + player.height + player.velocity.y >= enemy.position.y &&
 		player.position.x + (player.width/2) >= enemy.position.x &&
 		player.position.x <= enemy.position.x + (enemy.width/2)
 		) {
-		player.velocity.y = 0
+		enemies=[]
 	} else if (
 		player.position.x  >= enemy.position.x &&
 		player.position.x <= enemy.position.x + (enemy.width/2)&&
@@ -192,6 +279,7 @@ function animate(){
 			shownLoseAlert = true
 			init()
 	}
+})
 	
 
 	//win condition
@@ -218,6 +306,8 @@ window.addEventListener('keydown', ({key}) => {
 		case 'a':
 			console.log('left')
 			keys.left.pressed = true
+			player.currentSprite = player.sprites.run.left
+			player.currentCropWidth = player.sprites.run.cropWidth
 			break
 
 		case 's':
@@ -263,4 +353,3 @@ window.addEventListener('keyup', ({key}) => {
 	}
 })
 
->>>>>>> Stashed changes
